@@ -1,0 +1,141 @@
+bin目录 用来存放编译的二进制可执行文件的结果
+
+set(CMAKE_BUILD_TYPE Release) 设置CMake为release模式
+
+CMAKE_BUILD_TYPE    build的类型 是调试还是发布版本
+
+Debug通常称为调试版本，通过一系列编译选项的配合，编译的结果通常包含调试信息，而且不做任何优化，以为开发人员提供强大的应用程序调试能力
+Release通常称为发布版本，是为用户使用的，一般客户不允许在发布版本上进行调试。所以不保存调试信息，同时，它往往进行了各种优化，以期达到代码最小和速度最优。为用户的使用提供便利
+
+
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
+
+CMAKE_CXX_FLAGS 为c++编译器提供支持选项 后面添加的是c++11版本
+-Wall选项：编译后显示所有警告
+
+set(CMAKE_CXX_FLAGS_RELEASE  "-std=c++11 -O3 -fopenmp -pthread")
+
+如果将优化程度调到最高需要设置 -O3 ，最低的是 -O0 即不做优化，添加调试信息的参数是 -g  -ggdb，如果不添加这个参数，调试信息就不会被包含在生成的二进制中
+CMake中有一个变量CMAKE_BUILD_TYPE，可以取值枚举入下：Debug   Release 
+当这个变量值为Debug的时候，Cmake会使用变量CMAKE_CXX_FLAGS_DEBUG中的字符串作为编译选项生成Makefile
+
+-fopenmp 并行计算库 多线程支持
+-pthreads的编译选项是用于在编译时增加多线程的支持
+
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules) 添加自己定义的的cmake模块所在的路径 /ch13/cmake_modules
+
+list(LENGTH <list><output variable>)
+  list(GET <list> <elementindex> [<element index> ...]
+       <output variable>)
+  list(APPEND <list><element> [<element> ...])
+  list(FIND <list> <value><output variable>)
+  list(INSERT <list><element_index> <element> [<element> ...])
+  list(REMOVE_ITEM <list> <value>[<value> ...])
+  list(REMOVE_AT <list><index> [<index> ...])
+  list(REMOVE_DUPLICATES <list>)
+  list(REVERSE <list>)
+  list(SORT <list>)
+LENGTH返回列表的长度
+GET返回列表中指定下标的元素
+APPEND添加新元素到列表中
+INSERT 将新元素插入到列表中指定的位置
+REMOVE_ITEM从列表中删除某个元素
+REMOVE_AT从列表中删除指定下标的元素
+REMOVE_DUPLICATES从列表中删除重复的元素
+REVERSE 将列表的内容实地反转，改变的是列表本身，而不是其副本
+SORT 将列表按字母顺序实地排序，改变的是列表本身，而不是其副本
+
+CMAKE_MODULE_PATH 这个变量用来定义自己的cmake模块所在的路径
+
+CMAKE_SOURCE_DIR PROJECT_SOURCE_DIR <projectname>_SOURCE_DIR
+这三个变量指代的内容是一致的,不论采用何种编译方式,都是工程顶层目录。（ch13）
+
+
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin) 设置编译好的可执行文件的输出路径为ch13/bin
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)    设置编译好的库文件的输出路径为ch13/lib
+
+EXECUTABLE_OUTPUT_PATH 定义目标二进制可执行文件的存放位置
+LIBRARY_OUTPUT_PATH 定义目标链接库文件的存放位置
+
+
+find_package(OpenCV 3.1 REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+FIND_PACKAGE(<name> [major.minor] [QUIET] [NO_MODULE]
+[[REQUIRED|COMPONENTS] [componets...]])
+
+在Module模式中，cmake需要找到一个叫做Find<LibraryName>.cmake的文件 这个文件负责找到库所在的路径，为我们的项目引入头文件路径和库文件路径。
+cmake搜索这个文件的路径有两个，一个是提到的cmake安装目录下的share/cmake-<version>/Modules目录，另一个是我们指定的CMAKE_MODULE_PATH的所在目录。
+
+REQUIRED参数,其含义是指这个共享库是否是工程必须的,如果使用了这个参数,说明这
+个链接库是必备库,如果找不到这个链接库,则工程不能编译
+
+find_package和include_directories联用 (其实还要与target_link_libraries结合 三者是一体的)
+
+解释：find_package(<Name>)命令首先会在模块路径中寻找Find<name>.cmake 具体查找路径依次为：
+变量${CMAKE_MODULE_PATH}中的所有目录
+自己的模块目录/share/cmake-x.y/Modules/ 
+这称为模块模式
+如果没有找到这样的文件 find_package()会在 ./cmake/packages/或者/usr/local/share/中的各个包目录中查找 
+不区分大小写 找/usr/local/share/OpenCV中的OpenCVConfig.cmake或opencv-config.cmake 这称为配置模式
+
+找到了会定义以下变量
+<NAME>_FOUND
+<NAME>_INCLUDE_DIRS or <NAME>_INCLUDES
+<NAME>_LIBRARIES or <NAME>_LIBS
+<NAME>_DEFINITIONS
+也就是找到了配置文件 就可以给上面的四个变量赋予路径 
+
+OpenCV_INCLUDE_DIRS是关于find_package的变量,包含了一个路径，这样可以在代码中的#include做根目录 直接#include<Opencv>即可
+
+set(OpenCV_DIR /opt/ros/kinetic/share/OpenCV-3.3.1-dev) _DIR其实就是这两个文件所存在的位置，设置好后直接就得到所有路径变量了
+
+add_subdirectory(src)   向当前工程添加存放源文件的子目录 在这个子目录文件中单独构建工程 为构建添加一个子路径
+
+add_subdirectory(source_dir [binary_dir] [EXCLUDE_FROM_ALL])
+这条命令的作用是为构建添加一个子路径。source_dir选项指定了CMakeLists.txt源文件和代码文件的位置。如果source_dir是一个相对路径，那么source_dir选项会被解释为相对于当前的目录，但是它也可以是一个绝对路径。binary_dir选项指定了输出文件的路径。如果binary_dir是相对路径，它将会被解释为相对于当前输出路径，但是它也可以是一个绝对路径。如果没有指定binary_dir，binary_dir的值将会是没有做任何相对路径展开的source_dir，这也是通常的用法。在source_dir指定路径下的CMakeLists.txt将会在当前输入文件的处理过程执行到该命令之前，立即被CMake处理
+
+add_subdirectory(src bin) 
+上面的例子定义了将 src 子目录加入工程,并指定编译输出(包含编译中间结果)路径为
+bin目录。如果不进行 bin 目录的指定,那么编译结果(包括中间结果)都将存放在
+build/src 目录(这个目录跟原有的 src 目录对应),指定 bin 目录后,相当于在编译时
+将 src 重命名为 bin,所有的中间结果和目标二进制都将存放在 bin 目录
+
+
+add_library(myslam SHARED
+        frame.cpp
+        mappoint.cpp
+        map.cpp
+        camera.cpp
+        config.cpp
+        feature.cpp
+        frontend.cpp
+        backend.cpp
+        viewer.cpp
+        visual_odometry.cpp
+        dataset.cpp)
+
+target_link_libraries(myslam
+        ${THIRD_PARTY_LIBS})
+重点！！！
+add_library()该指令的主要作用就是将指定的源文件生成链接文件，然后添加到工程中去。该指令常用的语法如下：
+add_library(<name> [STATIC | SHARED | MODULE]
+            [EXCLUDE_FROM_ALL]
+            [source1] [source2] [...])
+
+其中<name>表示库文件的名字，该库文件会根据命令里列出的源文件来创建。而STATIC、SHARED和MODULE的作用是指定生成的库文件的类型。STATIC库是目标文件的归档文件，在链接其它目标的时候使用。SHARED库会被动态链接（动态链接库），在运行时会被加载。MODULE库是一种不会被链接到其它目标中的插件，但是可能会在运行时使用dlopen-系列的函数。默认状态下，库文件(libmyslam.so)将会在于源文件目录树的构建目录树的位置被创建(set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib) 将输出的库文件传入ch13/lib中)，该命令也会在这里被调用  语法中的source1 source2分别表示各个源文件
+
+target_link_libraries
+
+该指令的作用为将目标文件与库文件进行链接。该指令的语法如下：
+
+target_link_libraries(<target> [item1] [item2] [...]
+                      [[debug|optimized|general] <item>] ...)
+
+上述指令中的<target>是指通过add_executable()和add_library()指令生成已经创建的目标文件。而[item]表示库文件没有后缀的名字
+(这个指令可以用来为target添加需要链接的共享库)
+
+add_executable(run_kitti_stereo run_kitti_stereo.cpp)
+target_link_libraries(run_kitti_stereo myslam ${THIRD_PARTY_LIBS}) 连接自己的生成的库myslam与共享库THIRD_PARTY_LIBS
+
+
